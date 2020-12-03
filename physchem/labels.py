@@ -28,7 +28,6 @@ def label_binary(image_file, img_count=5, thresh=128):
     maxval = 255
 
     im_bin = (im_gray > thresh) * maxval
-
     im_invert = (255 - im_bin)
 
     # https://stackoverflow.com/questions/52078231/get-a-quanity-of-pixels-with-specific-color-at-image-python-opencv
@@ -49,28 +48,21 @@ def label_binary(image_file, img_count=5, thresh=128):
 #    sorted_regions_by_size = {k: v for k, v in sorted(regions_by_size.items(), key=lambda item: (item[0], item[1]), reverse=True)}
     sorted_regions_by_size = []
     labels_by_size_sorted = sorted(labels_by_size.items(), key=lambda item: item[0], reverse=True)
-
-    count = 0 ## use enumerate later
-    for labels_by_size in labels_by_size_sorted:
-        if count >= img_count:
-            break
+    count = 0
+    ncol = 1
+    nrow = img_count
+    fig, axes = plt.subplots(nrow, ncol, figsize=(8, 8), sharex=True, sharey=True)
+    ax = axes.ravel()
+    row = 0
+    for labels_by_size in labels_by_size_sorted[:img_count]:
         label = labels_by_size[1]
 
-        #this reduces the size of the image - strips all zeros; can't yet make it work
-        filtered_image = labeled[labeled != label]
-        # take the simple route - much slower but works
-        filtered_image = np.full(im_bin.shape, 255)
-
-        for r in range(filtered_image.shape[0]):
-            for c in range(filtered_image.shape[1]):
-                val = labeled[r,c]
-                if val == label:
-                    filtered_image[r,c] = 0
-
+        filtered_image = create_filtered_image(labeled, label, im_gray.shape)
+        subplot(ax[count], filtered_image, 'img' + str(count))
         ff8 = filtered_image.astype(np.uint8)
-        Image.fromarray(ff8).show()
-
+#        Image.fromarray(ff8).show()
         count += 1
+        row += 1
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -81,6 +73,60 @@ from skimage.segmentation import clear_border
 from skimage.measure import label, regionprops
 from skimage.morphology import closing, square
 from skimage.color import label2rgb
+
+def create_filtered_image(labeled, label, shape):
+    import numpy as np
+
+    #this reduces the size of the image - strips all zeros; can't yet make it work
+    # filtered_image = labeled[labeled != label]
+    # take the simple route - much slower but works
+    filtered_image = np.full(shape, 255)
+
+    # maybe use np.where?
+    for r in range(shape[0]):
+        for c in range(shape[1]):
+            val = labeled[r,c]
+            if val == label:
+                filtered_image[r,c] = 0
+
+    return filtered_image
+
+def thin_binary(image_file, thresh=180):
+    from skimage.morphology import skeletonize, thin
+    import os
+    import numpy as np
+    from PIL import Image
+    from scipy.ndimage import label
+
+
+    im_gray =np.array(Image.open(image_file).convert("L"))
+    maxval = 255
+    im_bin = (im_gray > thresh) * maxval
+    im_invert = (255 - im_bin)
+    image = im_invert
+    # binarize; this is white on black which skeletonize wants
+    image = np.where(image > 0, 1, 0)
+
+    skeleton = skeletonize(image)
+    thinned = thin(image)
+    thinned_partial = thin(image, max_iter=25)
+
+    fig, axes = plt.subplots(2, 2, figsize=(8, 8), sharex=True, sharey=True)
+    ax = axes.ravel()
+
+    subplot(ax[0], image, 'original')
+    subplot(ax[1], skeleton, 'skeleton')
+    subplot(ax[2], thinned, 'thinned')
+    subplot(ax[3], thinned_partial, 'thinned_partial')
+
+    fig.tight_layout()
+    plt.show()
+
+def subplot(axi, image, title):
+        axi.imshow(image, cmap=plt.cm.gray)
+        axi.set_title(title)
+        axi.axis('off')
+
 
 def segments():
     """ NOT YET USED """
