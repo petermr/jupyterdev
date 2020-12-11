@@ -57,7 +57,7 @@ class Tesseract:
             self.tesseract_strings = pytesseract.image_to_string(Image.open(self.png))
 
             if self.debug:
-                print(self.tesseract_strings)
+                print("tesseract strings", self.tesseract_strings)
 
     # In order to bypass the image conversions of pytesseract, just use relative or absolute image path
     # NOTE: In this case you should provide tesseract supported images or tesseract will return error
@@ -95,21 +95,21 @@ class Tesseract:
     # Get information about orientation and script detection
         osd = pytesseract.image_to_osd(Image.open(test_png))
         if debug:
-            print(osd)
+            print("osd...\n",osd)
         return osd
 
     def create_pdf(self):
         # Get a searchable PDF
         pdf = pytesseract.image_to_pdf_or_hocr(test_png, extension='pdf')
         if debug:
-            print(pdf)
+            print("pdf...\n", pdf)
         return pdf
 
     def create_hocr(self):
     # Get HOCR output
         hocr = pytesseract.image_to_pdf_or_hocr(test_png, extension='hocr')
         if debug:
-            print(hocr)
+            print("hocr...\n", hocr)
         return hocr
 
     @staticmethod
@@ -119,10 +119,10 @@ class Tesseract:
     def get_osd_dict():
         tesseract = tt.Tesseract()
         osd = tesseract.get_osd()
-        dict = pytesseract.osd_to_dict(osd)
+        osd_dict = pytesseract.osd_to_dict(osd)
         if debug:
-            print("dict ", dict)
-        return dict
+            print("osd dict ", osd_dict)
+        return osd_dict
 
 
     # In order to bypass the image conversions of pytesseract, just use relative or absolute image path
@@ -269,4 +269,3 @@ class Tesseract:
             print(">textboxes>", textboxes[:6])
 
         return textboxes
-

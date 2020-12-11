@@ -192,35 +192,48 @@ class OctreeQuantizer(object):
         """
         return self.root.get_palette_index(color, 0)
 
-def quantize(image):
+def quantize(image, size=4):
+    import time
     from ColorModule import Color
     from Octree import OctreeQuantizer
     from PIL import Image
 
+    # size = 16 => 256 colors for 8 bits per pixel output image
+
     pixels = image.load()
     width, height = image.size
+    print(width, height)
 
     octree = OctreeQuantizer()
 
     # add colors to the octree
+    time0 = time.perf_counter()
     for j in range(height):
         for i in range(width):
             octree.add_color(Color(*pixels[i, j]))
+    print("octree time", time.perf_counter()-time0)
 
-    # 256 colors for 8 bits per pixel output image
-    size = 4 # might be 16
+    palette, palette_image = create_palette_image(size, octree, width, height)
+    out_image = create_output_image(width, height, octree, palette, pixels)
+    return out_image, palette, palette_image
+
+def create_palette_image(size, octree, width, height):
+    from PIL import Image
+    import time
+    time0 = time.perf_counter()
     palette = octree.make_palette(size * size)
-
-    # create palette for 256 color max and save to file
     palette_image = Image.new('RGB', (size, size))
     palette_pixels = palette_image.load()
     for i, color in enumerate(palette):
         rgb = (color.red, color.green, color.blue)
-#        print("rgb ", )
         palette_pixels[i % size, i // size] = rgb
-    palette_image.save('rainbow_palette.png')
+    print("palette time", time.perf_counter()-time0)
+    return palette, palette_image
 
-    # save output image
+def create_output_image(width, height, octree, palette, pixels):
+    from PIL import Image
+    import time
+    time0 = time.perf_counter()
     out_image = Image.new('RGB', (width, height))
     out_pixels = out_image.load()
     for j in range(height):
@@ -229,4 +242,5 @@ def quantize(image):
             color = palette[index]
             out_pixels[i, j] = (color.red, color.green, color.blue)
 
+    print("output time", time.perf_counter()-time0)
     return out_image

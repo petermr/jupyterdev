@@ -126,8 +126,8 @@ def create_baselines(textboxes):
             xleft[x0] += 1   # useful for l-justified ladders
             xright[x1] += 1  # useful for r-justified ladders
 
-        print("\nxleft\n ", xleft, "\nxright\n", xright, "\nytop\n ", ytop,
-          "\nybot\n", ybot, "\nxbase90\n", xbase90)
+    print("\nxleft\n ", xleft, "\nxright\n", xright, "\nytop\n ", ytop,
+        "\nybot\n", ybot, "\nxbase90\n", xbase90)
 
 @staticmethod
 def plot_textboxes(image, textboxes):

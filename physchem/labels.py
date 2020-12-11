@@ -49,15 +49,16 @@ def label_binary(image_file, img_count=5, thresh=128):
     sorted_regions_by_size = []
     labels_by_size_sorted = sorted(labels_by_size.items(), key=lambda item: item[0], reverse=True)
     count = 0
-    ncol = 1
-    nrow = img_count
-    fig, axes = plt.subplots(nrow, ncol, figsize=(8, 8), sharex=True, sharey=True)
+    ncol = 3
+    nrow = (img_count - 1) // ncol + 1
+    fig, axes = plt.subplots(ncol, nrow, figsize=(12, 12), sharex=True, sharey=True)
     ax = axes.ravel()
     row = 0
     for labels_by_size in labels_by_size_sorted[:img_count]:
         label = labels_by_size[1]
 
         filtered_image = create_filtered_image(labeled, label, im_gray.shape)
+        filtered_image = ensure_white_bg_binary(filtered_image)
         subplot(ax[count], filtered_image, 'img' + str(count))
         ff8 = filtered_image.astype(np.uint8)
 #        Image.fromarray(ff8).show()
@@ -91,6 +92,12 @@ def create_filtered_image(labeled, label, shape):
 
     return filtered_image
 
+def ensure_white_bg_binary(image):
+    import numpy as np
+    white = np.sum(image > 0)
+    black = np.sum(image == 0)
+    return image if white > black else np.where(image > 0, 0, 1)
+
 def thin_binary(image_file, thresh=180):
     from skimage.morphology import skeletonize, thin
     import os
@@ -99,7 +106,31 @@ def thin_binary(image_file, thresh=180):
     from scipy.ndimage import label
 
 
+    skeleton = thin_skeleton_file(image_file, thresh=180, mode="skeleton")
+    thinned = thin_skeleton_file(image_file, max_iter=25, thresh=180, mode="thin")
+    fig, axes = plt.subplots(1, 3, figsize=(12, 12), sharex=True, sharey=True)
+    ax = axes.ravel()
+
+    image = Image.open(image_file)
+    subplot(ax[0], image, 'original')
+    subplot(ax[1], ensure_white_bg_binary(skeleton), 'skeleton')
+    subplot(ax[2], ensure_white_bg_binary(thinned), 'thinned')
+#    subplot(ax[3], thinned_partial, 'thinned_partial')
+
+    fig.tight_layout()
+    plt.show()
+
+def thin_skeleton_file(image_file, max_iter=25, thresh=180, mode="skeleton"):
+    # mode = skeleton or thin
+    import numpy as np
+    from PIL import Image
+
     im_gray =np.array(Image.open(image_file).convert("L"))
+    return thin_skeleton_gray(im_gray, max_iter, thresh, mode=mode)
+
+def thin_skeleton_gray(im_gray, max_iter=25, thresh=180, mode="skeleton"):
+    import numpy as np
+    from skimage.morphology import skeletonize, thin
     maxval = 255
     im_bin = (im_gray > thresh) * maxval
     im_invert = (255 - im_bin)
@@ -107,20 +138,9 @@ def thin_binary(image_file, thresh=180):
     # binarize; this is white on black which skeletonize wants
     image = np.where(image > 0, 1, 0)
 
-    skeleton = skeletonize(image)
-    thinned = thin(image)
-    thinned_partial = thin(image, max_iter=25)
+    thinned_image = skeletonize(image) if mode=="skeleton" else thin(image, max_iter)
+    return thinned_image
 
-    fig, axes = plt.subplots(2, 2, figsize=(8, 8), sharex=True, sharey=True)
-    ax = axes.ravel()
-
-    subplot(ax[0], image, 'original')
-    subplot(ax[1], skeleton, 'skeleton')
-    subplot(ax[2], thinned, 'thinned')
-    subplot(ax[3], thinned_partial, 'thinned_partial')
-
-    fig.tight_layout()
-    plt.show()
 
 def subplot(axi, image, title):
         axi.imshow(image, cmap=plt.cm.gray)
